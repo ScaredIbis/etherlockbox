@@ -15,25 +15,35 @@ contract EtherLockBox {
     bytes hints;
     bytes answers;
     uint8 numAnswersRequired;
-    bool breakableOnceUnlocked;
+    bool spendableOnceUnlocked;
   }
+
+  event Created(bytes lockBoxId);
+  event ValueAdded(bytes lockBoxId, uint amount);
+  event SpentFrom(bytes lockBoxId, uint amount, address to);
+  event Unlocked(bytes lockBoxId);
+  event Redeemed(bytes lockBoxId, uint amount, address to);
 
   mapping (bytes => LockBox) lockBoxes;
 
-  /// Create a new lockbox
-  /// @param lockBoxId id of the lockbox
-  /// @param hints serialised lockbox hints
-  /// @param answers serialised lockbox answers
-  /// @param numAnswersRequired number of correct answers required to unlock this lockbox
+  /// Create a new lockBox
+  /// @param lockBoxId id of the lockBox
+  /// @param hints serialised lockBox hints
+  /// hint serialisation form is
+  /// <numberOfHints(1byte)><sizeOfHint1(2 bytes)><hint1>...<sizeOfHintN(2 bytes)><hintN>
+  /// @param answers serialised lockBox answers
+  /// answer serialisation form is
+  /// <numberOfAnswers(1byte)><answer1(32 bytes)>...<answerN(32 bytes)>
+  /// @param numAnswersRequired number of correct answers required to unlock this lockBox
   /// @param unlockingPeriod number of blocks before redeemer can claim unlocked value
-  /// @dev creates a new lockbox
+  /// @dev creates a new lockBox
   function createLockBox(
     bytes memory lockBoxId,
     bytes memory hints,
     bytes memory answers,
     uint8 numAnswersRequired,
     uint unlockingPeriod,
-    bool breakableOnceUnlocked
+    bool spendableOnceUnlocked
   ) public payable {
     LockBox storage lockBox = lockBoxes[lockBoxId];
     require(lockBox.createdAt == 0, "lockBox with this id already exists");
@@ -44,12 +54,13 @@ contract EtherLockBox {
     lockBox.answers = answers;
     lockBox.numAnswersRequired = numAnswersRequired;
     lockBox.unlockingPeriod = unlockingPeriod;
-    lockBox.breakableOnceUnlocked = breakableOnceUnlocked;
+    lockBox.spendableOnceUnlocked = spendableOnceUnlocked;
+    emit Created(lockBoxId);
   }
 
-  /// Get a lockbox by id
-  /// @param lockBoxId id of the lockbox
-  /// @dev creates a new lockbox
+  /// Get a lockBox by id
+  /// @param lockBoxId id of the lockBox
+  /// @dev creates a new lockBox
   function getLockBox(bytes memory lockBoxId) public view returns (
     uint createdAt,
     address owner,
@@ -60,7 +71,7 @@ contract EtherLockBox {
     bytes memory hints,
     bytes memory answers,
     uint8 numAnswersRequired,
-    bool breakableOnceUnlocked
+    bool spendableOnceUnlocked
   ) {
     LockBox storage lockBox = lockBoxes[lockBoxId];
     return (
@@ -73,70 +84,73 @@ contract EtherLockBox {
       lockBox.hints,
       lockBox.answers,
       lockBox.numAnswersRequired,
-      lockBox.breakableOnceUnlocked
+      lockBox.spendableOnceUnlocked
     );
   }
 
-  /// Add value to an existing lockbox
-  /// @param lockBoxId id of the lockbox
-  /// @dev adds the msg value to the value of the lockbox
+  /// Add value to an existing lockBox
+  /// @param lockBoxId id of the lockBox
+  /// @dev adds the msg value to the value of the lockBox
   function addValue(bytes memory lockBoxId) public payable {
     LockBox storage lockBox = lockBoxes[lockBoxId];
     require(lockBoxes[lockBoxId].createdAt > 0, "lockBox does not exist");
     lockBox.value += msg.value;
+    emit ValueAdded(lockBoxId, msg.value);
   }
 
-  /// Break the lockbox as the owner, sending the specified value to a chosen address
-  /// @param lockBoxId id of the lockbox
-  /// @param to id of the lockbox
-  /// @param amount amount to deduct from lockbox
+  /// Spend from the lockBox as the owner, sending the specified value to a chosen address
+  /// @param lockBoxId id of the lockBox
+  /// @param amount amount to deduct from lockBox
+  /// @param to id of the lockBox
   /// @dev bypass redemption and immediately send the specified value to a chosen address
-  function breakLockBox(bytes memory lockBoxId, address payable to, uint amount) public {
+  function spendFromLockBox(bytes memory lockBoxId, uint amount, address payable to) public {
     LockBox storage lockBox = lockBoxes[lockBoxId];
     require(lockBox.createdAt > 0, "lockBox does not exist");
-    require(lockBox.owner == msg.sender, "only the owner can break a lockbox");
-    require(lockBox.unlockedAt > block.number || lockBoxes[lockBoxId].breakableOnceUnlocked, "this lockbox cannot be broken after it is unlocked");
-    require(lockBox.value <= amount, "not enough value in lockbox");
+    require(lockBox.owner == msg.sender, "only the owner can spend from a lockBox");
+    require((lockBox.unlockedAt == 0 || lockBox.unlockedAt > block.number) || lockBoxes[lockBoxId].spendableOnceUnlocked == true, "this lockBox cannot be spent from after it is unlocked");
+    require(amount <= lockBox.value, "not enough value in lockBox");
     lockBox.value -= amount;
     to.transfer(amount);
+    emit SpentFrom(lockBoxId, amount, to);
   }
 
-  /// Unlock the lockbox, setting the msg sender as the redeemer
-  /// @param lockBoxId id of the lockbox
+  /// Unlock the lockBox, setting the msg sender as the redeemer
+  /// @param lockBoxId id of the lockBox
   /// @param answers serialised solutions to answer hash(s)
-  /// @dev given the correct hash inputs for the answers, sets the sender as the redeemer of the lockbox
+  /// @dev given the correct hash inputs for the answers, sets the sender as the redeemer of the lockBox
   function unlockLockBox(bytes memory lockBoxId, bytes memory answers) public {
     LockBox storage lockBox = lockBoxes[lockBoxId];
     require(lockBoxes[lockBoxId].createdAt > 0, "lockBox does not exist");
     // first byte specifies how many answers there are
     uint numAnswersCorrect = 0;
-    uint8 numAnswersProvided = bytesToUint8(answers);
-    for (uint8 i = 0; i < numAnswersProvided; i++) {
-      uint byteOffset = i * 32 + 1;
-      bytes32 expectedAnswer = bytesToBytes32(lockBox.answers, byteOffset);
-      bytes32 providedAnswer = keccak256(abi.encodePacked(bytesToBytes32(answers, byteOffset)));
+    uint8 numTotalAnswers = bytesToUint8(lockBox.answers);
+    for (uint8 i = 0; i < numTotalAnswers; i++) {
+      bytes32 expectedAnswer = bytesToBytes32(lockBox.answers, i * 32 + 1);
+      bytes32 providedAnswer = keccak256(abi.encodePacked(bytesToBytes32(answers, i * 32)));
       if(expectedAnswer == providedAnswer) {
         numAnswersCorrect++;
       }
     }
-    require(numAnswersCorrect >= lockBox.numAnswersRequired, "Not enough correct answers");
+    require(numAnswersCorrect >= lockBox.numAnswersRequired, "not enough correct answers");
     lockBox.redeemableBy = msg.sender;
     lockBox.unlockedAt = block.number + lockBox.unlockingPeriod;
+    emit Unlocked(lockBoxId);
   }
 
-  /// Redeem a specified amount from an unlocked lockbox
-  /// @param lockBoxId id of the lockbox
+  /// Redeem a specified amount from an unlocked lockBox
+  /// @param lockBoxId id of the lockBox
+  /// @param amount amount to redeem from lockBox
   /// @param to address to redeem value to
-  /// @param amount amount to redeem from lockbox
-  /// @dev given that the lockbox is redeemable by the msg sender, sends specified amount to specified address
-  function redeemLockBox(bytes memory lockBoxId, address payable to, uint amount) public {
+  /// @dev given that the lockBox is redeemable by the msg sender, sends specified amount to specified address
+  function redeemLockBox(bytes memory lockBoxId, uint amount, address payable to) public {
     LockBox storage lockBox = lockBoxes[lockBoxId];
     require(lockBox.createdAt > 0, "lockBox does not exist");
-    require(lockBox.redeemableBy == msg.sender, "you are not allowed to redeem this lockbox");
-    require(lockBox.unlockedAt <= block.number, "this lockbox is still locked");
-    require(amount <= lockBox.value, "not enough value in lockbox");
+    require(lockBox.unlockedAt > 0 && lockBox.unlockedAt <= block.number, "this lockBox is still locked");
+    require(lockBox.redeemableBy == msg.sender, "you are not allowed to redeem this lockBox");
+    require(amount <= lockBox.value, "not enough value in lockBox");
     lockBox.value -= amount;
     to.transfer(amount);
+    emit Redeemed(lockBoxId, amount, to);
   }
 
   /// util function for converting first byte of byte array to uint8
