@@ -1,9 +1,13 @@
 // SPDX-License-Identifier: MIT
 pragma solidity >=0.4.21 <=0.7.0;
 
+import "@openzeppelin/contracts/math/SafeMath.sol";
+
 /// @author Chris Martin
 /// @title A mechanism for locking eth behind m-of-n security questions
 contract EtherLockBox {
+
+  using SafeMath for uint256;
 
   struct LockBox {
     uint createdAt;
@@ -94,7 +98,7 @@ contract EtherLockBox {
   function addValue(bytes memory lockBoxId) public payable {
     LockBox storage lockBox = lockBoxes[lockBoxId];
     require(lockBoxes[lockBoxId].createdAt > 0, "lockBox does not exist");
-    lockBox.value += msg.value;
+    lockBox.value = lockBox.value.add(msg.value);
     emit ValueAdded(lockBoxId, msg.value);
   }
 
@@ -109,7 +113,7 @@ contract EtherLockBox {
     require(lockBox.owner == msg.sender, "only the owner can spend from a lockBox");
     require((lockBox.unlockedAt == 0 || lockBox.unlockedAt > block.number) || lockBoxes[lockBoxId].spendableOnceUnlocked == true, "this lockBox cannot be spent from after it is unlocked");
     require(amount <= lockBox.value, "not enough value in lockBox");
-    lockBox.value -= amount;
+    lockBox.value = lockBox.value.sub(amount);
     to.transfer(amount);
     emit SpentFrom(lockBoxId, amount, to);
   }
@@ -133,7 +137,7 @@ contract EtherLockBox {
     }
     require(numAnswersCorrect >= lockBox.numAnswersRequired, "not enough correct answers");
     lockBox.redeemableBy = msg.sender;
-    lockBox.unlockedAt = block.number + lockBox.unlockingPeriod;
+    lockBox.unlockedAt = block.number.add(lockBox.unlockingPeriod);
     emit Unlocked(lockBoxId);
   }
 
@@ -148,7 +152,7 @@ contract EtherLockBox {
     require(lockBox.unlockedAt > 0 && lockBox.unlockedAt <= block.number, "this lockBox is still locked");
     require(lockBox.redeemableBy == msg.sender, "you are not allowed to redeem this lockBox");
     require(amount <= lockBox.value, "not enough value in lockBox");
-    lockBox.value -= amount;
+    lockBox.value = lockBox.value.sub(amount);
     to.transfer(amount);
     emit Redeemed(lockBoxId, amount, to);
   }

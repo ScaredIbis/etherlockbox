@@ -227,21 +227,33 @@ contract("EtherLockBox", accounts => {
   it("unlocks a lockBox if enough correct answers are provided", async () => {
     const etherLockBoxInstance = await EtherLockBox.new();
 
-    await etherLockBoxInstance.createLockBox(...defaultLockBoxArgs)
+    const unlockingPeriod = 3;
+    await etherLockBoxInstance.createLockBox(
+      "0x0123",
+      "0x0123456789",
+      "0x03009371045a3a6b823569d2dcdadeab27c8e4a58222658cb482e46ec689151ea3"+ // dog
+      "b2311223dce89420ba2e9492e1c68fc01cf84fb4a419ea9e71f6fe5a9ce30e48"+ // car
+      "89859628ea9579938ef099ddc022231afe8ad583bff8a7f3e13b29a2d6d9bbca", // school
+      2,
+      unlockingPeriod,
+      false,
+      { from: accounts[0], value: 1000 }
+    )
 
     const currentBlockNumber = await web3.eth.getBlockNumber();
 
     await etherLockBoxInstance.unlockLockBox(
       defaultLockBoxArgs[0],
-      "0x9c22ff5f21f0b81b113e63f7db6da94fedef11b2119b4088b89664fb9a3cb658",
+      "0x41791102999c339c844880b23950704cc43aa840f3739e365323cda4dfa89e7a"+ // dog
+      "52763589e772702fa7977a28b3cfb6ca534f0208a2b2d55f7558af664eac478a"+ // cat
+      "5bc534741144677435544dbab077ee677cce543955e026b74bd7a04ccb945123", // school
       { from: accounts[1] }
     );
 
-    const lockBox = await etherLockBoxInstance.getLockBox(defaultLockBoxArgs[0]);
-    const unlockingPeriod = defaultLockBoxArgs[4];
+    const lockBox = await etherLockBoxInstance.getLockBox("0x0123");
 
     assert.equal(
-      lockBox.unlockedAt,
+      new BN(lockBox.unlockedAt),
       currentBlockNumber + 1 + unlockingPeriod,
       "lockBox was not unlocked at the right block"
     );
