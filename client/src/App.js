@@ -1,4 +1,5 @@
 import React, { useEffect, useState, useCallback } from "react";
+import clsx from "clsx";
 
 import { makeStyles } from '@material-ui/core/styles';
 import IconButton from '@material-ui/core/IconButton';
@@ -15,6 +16,7 @@ import "fontsource-roboto";
 
 import NewLockBoxForm from "./NewLockBoxForm";
 import LockBox from "./LockBox";
+import UnlockLockBox from "./UnlockLockBox";
 import EtherLockBoxContract from "./contracts/EtherLockBox.json";
 import getWeb3 from "./getWeb3";
 
@@ -29,6 +31,9 @@ const useStyles = makeStyles((theme) => ({
     '& .MuiInputBase-root': {
       fontWeight: "bold"
     },
+  },
+  marginBottom: {
+    marginBottom: theme.spacing(1),
   },
   paper: {
     padding: theme.spacing(2),
@@ -49,6 +54,7 @@ const App = () => {
 
   const [ready, setReady] = useState(false);
   const [web3, setWeb3] = useState({});
+  const [blockNumber, setBlockNumber] = useState(null);
   const [account, setAccount] = useState([]);
   const [contract, setContract] = useState({});
   const [lockBoxId, setLockBoxId] = useState("");
@@ -71,8 +77,10 @@ const App = () => {
         deployedNetwork && deployedNetwork.address
       );
 
-      _web3.currentProvider.publicConfigStore.on("update", () => {
+      _web3.currentProvider.publicConfigStore.on("update", async () => {
         setAccount(_web3.currentProvider.selectedAddress);
+        const _blockNumber = await _web3.eth.getBlockNumber();
+        setBlockNumber(_blockNumber);
       });
 
       setWeb3(_web3);
@@ -141,6 +149,17 @@ const App = () => {
         value: web3.utils.toWei(formValues.value)
       });
   }, [account, web3.utils, contract.methods, lockBoxId]);
+
+  const handleUnlockLockBox = useCallback(async (answers) => {
+    console.log(answers);
+    await contract.methods.unlockLockBox(
+      web3.utils.hexToBytes(web3.utils.utf8ToHex(lockBoxId)),
+      answers,
+    )
+      .send({
+        from: account
+      });
+  }, [account, web3.utils, contract.methods, lockBoxId])
 
   useEffect(() => { initWeb3() }, [web3.eth]);
 
@@ -238,16 +257,35 @@ const App = () => {
         {
           lockBoxId && Number(lockBox.createdAt) > 0
             ? (
-              <Paper
-                className={styles.paper}
-                variant="outlined"
-              >
-                <LockBox
-                  lockBox={lockBox}
-                  web3={web3}
-                  contract={contract}
-                />
-              </Paper>
+              <>
+                <Paper
+                  className={clsx(styles.paper, styles.marginBottom)}
+                  elevation={2}
+                >
+                  <LockBox
+                    blockNumber={blockNumber}
+                    lockBox={lockBox}
+                    lockBoxId={lockBoxId}
+                    web3={web3}
+                    account={account}
+                    contract={contract}
+                  />
+                </Paper>
+                <Paper
+                  className={styles.paper}
+                  elevation={2}
+                >
+                  <UnlockLockBox
+                    blockNumber={blockNumber}
+                    lockBox={lockBox}
+                    lockBoxId={lockBoxId}
+                    web3={web3}
+                    account={account}
+                    contract={contract}
+                    onUnlock={handleUnlockLockBox}
+                  />
+                </Paper>
+              </>
             )
             : null
         }

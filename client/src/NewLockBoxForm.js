@@ -50,12 +50,12 @@ const NewLockBoxForm = props => {
     answer: ""
   }]);
 
-  const updateQuestions = ({ hint, answer, index }) => {
+  const updateQuestions = useCallback(({ hint, answer, index }) => {
     const newQuestions = [...questions];
     newQuestions.splice(index, 1, { hint, answer });
 
     setQuestions(newQuestions);
-  };
+  }, [questions]);
 
   const removeQuestion = index => {
     if(questions.length > 1) {
