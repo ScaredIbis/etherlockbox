@@ -6,9 +6,8 @@ import Typography from "@material-ui/core/Typography";
 import Button from "@material-ui/core/Button";
 import Tooltip from "@material-ui/core/Tooltip";
 import InputAdornment from "@material-ui/core/InputAdornment";
-import CheckCircleOutlineIcon from '@material-ui/icons/CheckCircleOutline';
+import CheckCircleIcon from '@material-ui/icons/CheckCircle';
 import RadioButtonUncheckedIcon from '@material-ui/icons/RadioButtonUnchecked';
-import Ether from "./img/ether.svg";
 
 const useStyles = makeStyles((theme) => ({
   root: {
@@ -88,7 +87,7 @@ const UnlockLockBox = props => {
       return total + `0000000000000000000000000000000000000000000000000000000000000000`;
     }, "")
     onUnlock(`0x${hashedAnswers}`);
-  }, [answers])
+  }, [answers, hints, onUnlock, web3.utils])
 
   return (
     <div className={styles.root}>
@@ -116,8 +115,8 @@ const UnlockLockBox = props => {
                   <InputAdornment position="end">
                     {
                       answers[index] && answers[index].isCorrect ?
-                      <CheckCircleOutlineIcon color="primary" /> :
-                      <RadioButtonUncheckedIcon />
+                      <CheckCircleIcon color="primary" /> :
+                      <RadioButtonUncheckedIcon color="secondary" />
                     }
                   </InputAdornment>
                 )

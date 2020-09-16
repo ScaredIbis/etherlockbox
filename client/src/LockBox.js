@@ -1,9 +1,12 @@
-import React, { useMemo } from "react";
+import React, { useMemo, useState, useEffect } from "react";
 import { makeStyles } from '@material-ui/core/styles';
 import Typography from "@material-ui/core/Typography";
+import Grid from "@material-ui/core/Grid";
 import Button from "@material-ui/core/Button";
 import Tooltip from "@material-ui/core/Tooltip";
 import Ether from "./img/ether.svg";
+
+import SpendValue from "./SpendValue";
 
 const useStyles = makeStyles((theme) => ({
   etherIcon: {
@@ -19,10 +22,17 @@ const useStyles = makeStyles((theme) => ({
     whiteSpace: "nowrap",
     overflow: "hidden",
     textOverflow: "ellipsis"
+  },
+  buttonContainer: {
+    display: "flex",
+    flexDirection: "row",
+    justifyContent: "flex-start"
   }
 }));
 
 const LockBox = props => {
+  const [spendingContext, setSpendingContext] = useState(null);
+  const [spendingProps, setSpendingProps] = useState({});
 
   const styles = useStyles();
 
@@ -31,7 +41,10 @@ const LockBox = props => {
     blockNumber,
     lockBoxId,
     account,
-    web3
+    web3,
+    handleSpendValue,
+    handleRedeemValue,
+    handleAddValue
   } = props;
 
   const emoji = useMemo(() => {
@@ -64,17 +77,49 @@ const LockBox = props => {
   const redeemable = useMemo(() => {
     return (
       !isLocked &&
-      lockBox.redeemableBy.toUpperCase() == account.toUpperCase()
+      lockBox.redeemableBy.toUpperCase() === account.toUpperCase()
     )
   }, [lockBox, account, isLocked])
 
   const spendable = useMemo(() => {
     return (
-      isLocked ||
-      lockBox.spendableOnceUnlocked &&
+      ( isLocked || lockBox.spendableOnceUnlocked ) &&
       lockBox.owner.toUpperCase() === account.toUpperCase()
     )
   }, [lockBox, account, isLocked])
+
+  useEffect(() => {
+    if(!spendingContext || !web3) {
+      setSpendingProps(previous => ({
+        ...previous,
+        defaultRecipient: ""
+      }));
+    } else if (spendingContext === "redeem") {
+      setSpendingProps({
+        title: "Redeem Locked Value",
+        onSpend: handleRedeemValue,
+        defaultRecipient: lockBox.redeemableBy,
+        buttonColor: "secondary",
+        buttonText: "Redeem"
+      });
+    } else if (spendingContext === "spend") {
+      setSpendingProps({
+        title: "Spend Locked Value",
+        onSpend: handleSpendValue,
+        defaultRecipient: lockBox.owner,
+        buttonColor: "primary",
+        buttonText: "Spend"
+      });
+    } else if (spendingContext === "addValue") {
+      setSpendingProps({
+        title: "Add Value to Lock Box",
+        onSpend: handleAddValue,
+        hideRecipientInput: true,
+        buttonColor: "primary",
+        buttonText: "Add Value"
+      })
+    }
+  }, [spendingContext, lockBoxId, web3, handleSpendValue, handleRedeemValue, handleAddValue, lockBox])
 
   return (
     <>
@@ -115,35 +160,74 @@ const LockBox = props => {
           "Lock box is redeemable immediately after unlocking"
         }
       </Typography>
-      <Tooltip
-        title={isLocked ? "Lock box is locked" : "Lock box is not spendable once unlocked"}
-        disableHoverListener={spendable}
+      <Grid
+        container
+        direction="row"
+        justify="space-between"
+        alignItems="center"
       >
-        <span>
-          <Button
-            variant="contained"
-            color="primary"
-            className={styles.marginRight}
-            disabled={!spendable}
-          >
-            Spend
-          </Button>
-        </span>
-      </Tooltip>
-      <Tooltip
-        title={!redeemable ? "Lock box is locked" : "You are not allowed to redeem this lock box"}
-        disableHoverListener={redeemable}
-      >
-        <span>
-        <Button
-          variant="contained"
-          color="secondary"
-          disabled={!redeemable}
+        <Grid
+          item
         >
-          Redeem
-        </Button>
-        </span>
-      </Tooltip>
+          <Grid
+            container
+            direction="row"
+            justify="flex-start"
+            alignItems="center"
+          >
+            <Tooltip
+              title={isLocked ? "Lock box is locked" : "Lock box is not spendable once unlocked"}
+              disableHoverListener={spendable}
+            >
+              <div>
+                <Button
+                  variant="contained"
+                  color="primary"
+                  className={styles.marginRight}
+                  disabled={!spendable}
+                  onClick={() => setSpendingContext("spend")}
+                  >
+                  Spend
+                </Button>
+              </div>
+            </Tooltip>
+            <Tooltip
+              title={!redeemable ? "Lock box is locked" : "You are not allowed to redeem this lock box"}
+              disableHoverListener={redeemable}
+            >
+              <div>
+              <Button
+                variant="contained"
+                color="secondary"
+                disabled={!redeemable}
+                onClick={() => setSpendingContext("redeem")}
+              >
+                Redeem
+              </Button>
+              </div>
+            </Tooltip>
+          </Grid>
+        </Grid>
+        <Grid
+          item
+        >
+          <Button
+            variant="outlined"
+            color="primary"
+            onClick={() => setSpendingContext("addValue")}
+          >
+            Add Value
+          </Button>
+        </Grid>
+      </Grid>
+      <SpendValue
+        open={spendingContext !== null}
+        onClose={() => setSpendingContext(null)}
+        lockBox={lockBox}
+        web3={web3}
+        {...spendingProps}
+      >
+      </SpendValue>
     </>
   );
 };

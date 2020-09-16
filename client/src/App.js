@@ -1,4 +1,4 @@
-import React, { useEffect, useState, useCallback } from "react";
+import React, { useEffect, useState, useCallback, useMemo } from "react";
 import clsx from "clsx";
 
 import { makeStyles } from '@material-ui/core/styles';
@@ -107,6 +107,7 @@ const App = () => {
     if(lockBoxId) {
       const lockBoxIdBytes = web3.utils.hexToBytes(web3.utils.utf8ToHex(lockBoxId));
       const lockBox = await contract.methods.getLockBox(lockBoxIdBytes).call();
+      console.log(lockBox)
       setLockBox(lockBox);
     }
   }, [lockBoxId, contract.methods, web3.utils]);
@@ -161,6 +162,38 @@ const App = () => {
       });
   }, [account, web3.utils, contract.methods, lockBoxId])
 
+  const handleSpendValue = useCallback(async (amount, to) => {
+    await contract.methods.spendFromLockBox(
+      web3.utils.hexToBytes(web3.utils.utf8ToHex(lockBoxId)),
+      amount,
+      to
+    )
+      .send({
+        from: account,
+      });
+  }, [account, web3.utils, contract.methods, lockBoxId])
+
+  const handleRedeemValue = useCallback(async (amount, to) => {
+    await contract.methods.redeemLockBox(
+      web3.utils.hexToBytes(web3.utils.utf8ToHex(lockBoxId)),
+      amount,
+      to
+    )
+      .send({
+        from: account,
+      });
+  }, [account, web3.utils, contract.methods, lockBoxId])
+
+  const handleAddValue = useCallback(async (amount) => {
+    await contract.methods.addValue(
+      web3.utils.hexToBytes(web3.utils.utf8ToHex(lockBoxId)),
+    )
+      .send({
+        from: account,
+        value: amount
+      });
+  }, [account, web3.utils, contract.methods, lockBoxId])
+
   useEffect(() => { initWeb3() }, [web3.eth]);
 
   useEffect(() => {
@@ -174,6 +207,11 @@ const App = () => {
       handleCreateLockBox(formValues);
     }
   }, [handleCreateLockBox, ready]);
+
+  const isLocked = useMemo(() => {
+    const unlockedAt = Number(lockBox.unlockedAt);
+    return (!blockNumber || unlockedAt === 0 || unlockedAt > blockNumber)
+  }, [lockBox, blockNumber]);
 
   if (!ready) {
     return (
@@ -269,22 +307,29 @@ const App = () => {
                     web3={web3}
                     account={account}
                     contract={contract}
+                    handleRedeemValue={handleRedeemValue}
+                    handleSpendValue={handleSpendValue}
+                    handleAddValue={handleAddValue}
                   />
                 </Paper>
-                <Paper
-                  className={styles.paper}
-                  elevation={2}
-                >
-                  <UnlockLockBox
-                    blockNumber={blockNumber}
-                    lockBox={lockBox}
-                    lockBoxId={lockBoxId}
-                    web3={web3}
-                    account={account}
-                    contract={contract}
-                    onUnlock={handleUnlockLockBox}
-                  />
-                </Paper>
+                {
+                  isLocked ? (
+                    <Paper
+                      className={styles.paper}
+                      elevation={2}
+                    >
+                      <UnlockLockBox
+                        blockNumber={blockNumber}
+                        lockBox={lockBox}
+                        lockBoxId={lockBoxId}
+                        web3={web3}
+                        account={account}
+                        contract={contract}
+                        onUnlock={handleUnlockLockBox}
+                      />
+                    </Paper>
+                  ) : null
+                }
               </>
             )
             : null
