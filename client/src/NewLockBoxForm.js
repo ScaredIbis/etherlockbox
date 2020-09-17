@@ -58,6 +58,7 @@ const NewLockBoxForm = props => {
   }, [questions]);
 
   const removeQuestion = index => {
+    setNumAnswersRequired(Math.max(1, questions.length - 1));
     if(questions.length > 1) {
       const newQuestions = [...questions];
       newQuestions.splice(index, 1);
@@ -67,6 +68,7 @@ const NewLockBoxForm = props => {
   };
 
   const addSecurityQuestion = () => {
+    setNumAnswersRequired(Math.min(255, questions.length + 1));
     setQuestions(previousQuestions => {
       // number of hints/answers must be contained within 1 byte (<= 255)
       if (previousQuestions.length < 255) {

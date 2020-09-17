@@ -86,6 +86,9 @@ const App = () => {
         deployedNetwork && deployedNetwork.address
       );
 
+      const _blockNumber = await _web3.eth.getBlockNumber();
+      setBlockNumber(_blockNumber);
+
       _web3.currentProvider.publicConfigStore.on("update", async () => {
         setAccount(_web3.currentProvider.selectedAddress);
         const _blockNumber = await _web3.eth.getBlockNumber();
@@ -112,9 +115,9 @@ const App = () => {
 
   const getLockBox = useCallback(async () => {
     if(lockBoxId) {
+      window.history.pushState({}, "", `?lockBoxId=${lockBoxId}`);
       const lockBoxIdBytes = web3.utils.hexToBytes(web3.utils.utf8ToHex(lockBoxId));
       const lockBox = await contract.methods.getLockBox(lockBoxIdBytes).call();
-      window.history.pushState({}, "", `?lockBoxId=${lockBoxId}`);
       setLockBox(lockBox);
     }
   }, [lockBoxId, contract.methods, web3.utils]);

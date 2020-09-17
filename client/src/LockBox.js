@@ -58,7 +58,8 @@ const LockBox = props => {
     }
   }, [lockBox, blockNumber])
 
-  const unlockedAt = useMemo(() => Number(lockBox.unlockedAt), [lockBox])
+  const unlockedAt = useMemo(() => Number(lockBox.unlockedAt), [lockBox.unlockedAt]);
+  const createdAt = useMemo(() => Number(lockBox.createdAt), [lockBox.createdAt]);
 
   const isLocked = useMemo(() => {
     return (!blockNumber || unlockedAt === 0 || unlockedAt >= blockNumber)
@@ -66,13 +67,31 @@ const LockBox = props => {
 
   const status = useMemo(() => {
     if(unlockedAt === 0) {
-      return `Locked since block ${Number(lockBox.createdAt)}`;
+      return `Locked since block ${createdAt}`;
     } else if (unlockedAt > blockNumber) {
-      return `Unlocks at block ${Number(lockBox.unlockedAt)}`;
+      return `Unlocks at block ${unlockedAt}`;
     } else if (unlockedAt <= blockNumber) {
-      return `Unlocked at block ${Number(lockBox.unlockedAt)}`;
+      return `Unlocked at block ${unlockedAt}`;
     }
-  }, [unlockedAt, blockNumber, lockBox.createdAt, lockBox.unlockedAt])
+  }, [unlockedAt, blockNumber, createdAt])
+
+  const blockDelta = useMemo(() => {
+    if(unlockedAt === 0) {
+      const delta = blockNumber - createdAt;
+      if(delta === 0) {
+        return "just now";
+      }
+      return `(${delta} ${delta === 1 ? "block" : "blocks"} ago)`
+    } else if(unlockedAt === blockNumber) {
+      return "(just now)"
+    } else if (unlockedAt > blockNumber) {
+      const delta = unlockedAt - blockNumber;
+      return `(${delta} ${delta === 1 ? "block" : "blocks"} from now)`;
+    } else {
+      const delta = blockNumber - unlockedAt;
+      return `(${delta} ${delta === 1 ? "block" : "blocks"} ago)`;
+    }
+  }, [unlockedAt, createdAt, blockNumber])
 
   const redeemable = useMemo(() => {
     return (
@@ -138,7 +157,17 @@ const LockBox = props => {
         />
         {web3.utils.fromWei(props.lockBox.value)} ETH
       </Typography>
-      <Typography variant="h6" gutterBottom>{emoji} {status} </Typography>
+      <Typography
+        variant="h6"
+        gutterBottom
+      >
+        {emoji} {status} {" "}
+        <Typography
+          variant="caption"
+        >
+          {blockDelta}
+        </Typography>
+      </Typography>
       <Typography
         variant="caption"
         component="p"
