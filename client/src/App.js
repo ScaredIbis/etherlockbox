@@ -123,7 +123,6 @@ const App = () => {
   }, [lockBoxId, contract.methods, web3.utils]);
 
   const handleCreateLockBox = useCallback(async formValues => {
-    setSnackBarMessage(`Creating Lock Box`);
     if (formValues.questions.length > 255) {
       throw new Error(`Too many questions: ${formValues.questions.length}`);
     }
@@ -148,74 +147,95 @@ const App = () => {
       answers = `${answers}${web3.utils.soliditySha3(web3.utils.soliditySha3(answer)).replace("0x", "")}`;
     }
 
-    await contract.methods.createLockBox(
-      web3.utils.hexToBytes(web3.utils.utf8ToHex(lockBoxId)),
-      hints,
-      answers,
-      formValues.numAnswersRequired,
-      formValues.unlockingPeriod,
-      formValues.spendableOnceUnlocked
-    )
-      .send({
-        from: account,
-        value: web3.utils.toWei(formValues.value)
-      });
-    setSnackBarMessage(null);
-    getLockBox();
+    setSnackBarMessage(`Creating Lock Box`);
+    try {
+      await contract.methods.createLockBox(
+        web3.utils.hexToBytes(web3.utils.utf8ToHex(lockBoxId)),
+        hints,
+        answers,
+        formValues.numAnswersRequired,
+        formValues.unlockingPeriod,
+        formValues.spendableOnceUnlocked
+      )
+        .send({
+          from: account,
+          value: web3.utils.toWei(formValues.value)
+        });
+      setSnackBarMessage(null);
+      getLockBox();
+    } catch (error) {
+      setSnackBarMessage(null);
+    }
   }, [account, web3.utils, contract.methods, lockBoxId, getLockBox]);
 
   const handleUnlockLockBox = useCallback(async (answers) => {
     setSnackBarMessage("Unlocking Lock Box")
-    await contract.methods.unlockLockBox(
-      web3.utils.hexToBytes(web3.utils.utf8ToHex(lockBoxId)),
-      answers,
-    )
-      .send({
-        from: account
-      });
-    setSnackBarMessage(null);
-    getLockBox();
+    try {
+      await contract.methods.unlockLockBox(
+        web3.utils.hexToBytes(web3.utils.utf8ToHex(lockBoxId)),
+        answers,
+      )
+        .send({
+          from: account
+        });
+      setSnackBarMessage(null);
+      getLockBox();
+    } catch (error) {
+      setSnackBarMessage(null);
+    }
   }, [account, web3.utils, contract.methods, lockBoxId, getLockBox])
 
   const handleSpendValue = useCallback(async (amount, to) => {
     setSnackBarMessage("Spending Value");
-    await contract.methods.spendFromLockBox(
-      web3.utils.hexToBytes(web3.utils.utf8ToHex(lockBoxId)),
-      amount,
-      to
-    )
-      .send({
-        from: account,
-      });
-    setSnackBarMessage(null);
-    getLockBox();
+    try {
+      await contract.methods.spendFromLockBox(
+        web3.utils.hexToBytes(web3.utils.utf8ToHex(lockBoxId)),
+        amount,
+        to
+      )
+        .send({
+          from: account,
+        });
+      setSnackBarMessage(null);
+      getLockBox();
+    } catch (error) {
+      setSnackBarMessage(null);
+    }
   }, [account, web3.utils, contract.methods, lockBoxId, getLockBox])
 
   const handleRedeemValue = useCallback(async (amount, to) => {
     setSnackBarMessage("Redeeming Value");
-    await contract.methods.redeemLockBox(
-      web3.utils.hexToBytes(web3.utils.utf8ToHex(lockBoxId)),
-      amount,
-      to
-    )
-      .send({
-        from: account,
-      });
-    setSnackBarMessage(null);
-    getLockBox();
+    try {
+      await contract.methods.redeemLockBox(
+        web3.utils.hexToBytes(web3.utils.utf8ToHex(lockBoxId)),
+        amount,
+        to
+      )
+        .send({
+          from: account,
+        });
+      setSnackBarMessage(null);
+      getLockBox();
+    } catch (error) {
+      setSnackBarMessage(null);
+    }
   }, [account, web3.utils, contract.methods, lockBoxId, getLockBox])
 
   const handleAddValue = useCallback(async (amount) => {
     setSnackBarMessage("Adding Value");
-    await contract.methods.addValue(
-      web3.utils.hexToBytes(web3.utils.utf8ToHex(lockBoxId)),
-    )
-      .send({
-        from: account,
-        value: amount
-      });
-    setSnackBarMessage(null);
-    getLockBox();
+    try {
+      await contract.methods.addValue(
+        web3.utils.hexToBytes(web3.utils.utf8ToHex(lockBoxId)),
+      )
+        .send({
+          from: account,
+          value: amount
+        });
+      setSnackBarMessage(null);
+      getLockBox();
+    } catch (error) {
+      setSnackBarMessage(null);
+    }
   }, [account, web3.utils, contract.methods, lockBoxId, getLockBox])
 
   useEffect(() => { initWeb3() }, [web3.eth]);
