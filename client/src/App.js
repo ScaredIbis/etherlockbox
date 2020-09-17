@@ -11,6 +11,10 @@ import FormControl from '@material-ui/core/FormControl';
 import Search from '@material-ui/icons/Search';
 import Grid from "@material-ui/core/Grid";
 import CircularProgress from "@material-ui/core/CircularProgress";
+import Snackbar from "@material-ui/core/Snackbar";
+import Link from "@material-ui/core/Link";
+import CloseIcon from '@material-ui/icons/Close';
+
 import "./App.css";
 import "fontsource-roboto";
 
@@ -46,6 +50,9 @@ const useStyles = makeStyles((theme) => ({
   hero: {
     textAlign: "center",
     backgroundColor: "transparent",
+  },
+  snackBarProgress: {
+    marginRight: theme.spacing(1)
   }
 }));
 
@@ -54,12 +61,14 @@ const App = () => {
 
   const [ready, setReady] = useState(false);
   const [web3, setWeb3] = useState({});
+  const [noWeb3, setNoWeb3] = useState(false);
   const [blockNumber, setBlockNumber] = useState(null);
   const [account, setAccount] = useState([]);
   const [contract, setContract] = useState({});
   const [lockBoxId, setLockBoxId] = useState("");
   const [searchedLockBoxId, setSearchedLockBoxId] = useState("");
   const [lockBox, setLockBox] = useState({});
+  const [snackBarMessage, setSnackBarMessage] = useState(null);
 
   async function initWeb3 () {
     try {
@@ -96,9 +105,7 @@ const App = () => {
       }
     } catch (error) {
       // Catch any errors for any of the above operations.
-      alert(
-        "Failed to load web3, accounts, or contract. Check console for details."
-      );
+      setNoWeb3(true);
       console.error(error);
     }
   }
@@ -107,12 +114,13 @@ const App = () => {
     if(lockBoxId) {
       const lockBoxIdBytes = web3.utils.hexToBytes(web3.utils.utf8ToHex(lockBoxId));
       const lockBox = await contract.methods.getLockBox(lockBoxIdBytes).call();
-      console.log(lockBox)
+      window.history.pushState({}, "", `?lockBoxId=${lockBoxId}`);
       setLockBox(lockBox);
     }
   }, [lockBoxId, contract.methods, web3.utils]);
 
   const handleCreateLockBox = useCallback(async formValues => {
+    setSnackBarMessage(`Creating Lock Box`);
     if (formValues.questions.length > 255) {
       throw new Error(`Too many questions: ${formValues.questions.length}`);
     }
@@ -149,10 +157,12 @@ const App = () => {
         from: account,
         value: web3.utils.toWei(formValues.value)
       });
-  }, [account, web3.utils, contract.methods, lockBoxId]);
+    setSnackBarMessage(null);
+    getLockBox();
+  }, [account, web3.utils, contract.methods, lockBoxId, getLockBox]);
 
   const handleUnlockLockBox = useCallback(async (answers) => {
-    console.log(answers);
+    setSnackBarMessage("Unlocking Lock Box")
     await contract.methods.unlockLockBox(
       web3.utils.hexToBytes(web3.utils.utf8ToHex(lockBoxId)),
       answers,
@@ -160,9 +170,12 @@ const App = () => {
       .send({
         from: account
       });
-  }, [account, web3.utils, contract.methods, lockBoxId])
+    setSnackBarMessage(null);
+    getLockBox();
+  }, [account, web3.utils, contract.methods, lockBoxId, getLockBox])
 
   const handleSpendValue = useCallback(async (amount, to) => {
+    setSnackBarMessage("Spending Value");
     await contract.methods.spendFromLockBox(
       web3.utils.hexToBytes(web3.utils.utf8ToHex(lockBoxId)),
       amount,
@@ -171,9 +184,12 @@ const App = () => {
       .send({
         from: account,
       });
-  }, [account, web3.utils, contract.methods, lockBoxId])
+    setSnackBarMessage(null);
+    getLockBox();
+  }, [account, web3.utils, contract.methods, lockBoxId, getLockBox])
 
   const handleRedeemValue = useCallback(async (amount, to) => {
+    setSnackBarMessage("Redeeming Value");
     await contract.methods.redeemLockBox(
       web3.utils.hexToBytes(web3.utils.utf8ToHex(lockBoxId)),
       amount,
@@ -182,9 +198,12 @@ const App = () => {
       .send({
         from: account,
       });
-  }, [account, web3.utils, contract.methods, lockBoxId])
+    setSnackBarMessage(null);
+    getLockBox();
+  }, [account, web3.utils, contract.methods, lockBoxId, getLockBox])
 
   const handleAddValue = useCallback(async (amount) => {
+    setSnackBarMessage("Adding Value");
     await contract.methods.addValue(
       web3.utils.hexToBytes(web3.utils.utf8ToHex(lockBoxId)),
     )
@@ -192,7 +211,9 @@ const App = () => {
         from: account,
         value: amount
       });
-  }, [account, web3.utils, contract.methods, lockBoxId])
+    setSnackBarMessage(null);
+    getLockBox();
+  }, [account, web3.utils, contract.methods, lockBoxId, getLockBox])
 
   useEffect(() => { initWeb3() }, [web3.eth]);
 
@@ -213,129 +234,176 @@ const App = () => {
     return (!blockNumber || unlockedAt === 0 || unlockedAt > blockNumber)
   }, [lockBox, blockNumber]);
 
-  if (!ready) {
-    return (
+  return (
+    <>
       <Grid
+        className={styles.root}
         container
         direction="row"
         justify="center"
         alignItems="center"
       >
-        <CircularProgress />
-      </Grid>
-    );
-  }
-  return (
-    <Grid
-      className={styles.root}
-      container
-      direction="row"
-      justify="center"
-      alignItems="center"
-    >
-      <Grid
-        item
-        xs={12}
-        sm={10}
-        md={6}
-        lg={4}
-      >
-        <div className={styles.hero}>
-          <Typography variant="h4" gutterBottom>{"\u{1F511}"} Ether Lock Box</Typography>
-        </div>
-        <Paper
-          elevation={2}
+        <Grid
+          item
+          xs={12}
+          sm={10}
+          md={6}
+          lg={4}
         >
-          <form
-            className={styles.searchForm}
-            noValidate
-            autoComplete="off"
-            onSubmit={event => {
-              event.preventDefault();
-              setLockBoxId(searchedLockBoxId);
-            }}
-          >
-            <FormControl fullWidth>
-              <TextField
-                variant="outlined"
-                placeholder="Find Lock Box By ID"
-                value={searchedLockBoxId}
-                onChange={event => setSearchedLockBoxId(event.target.value)}
-                InputProps={{
-                  endAdornment: (
-                    <InputAdornment position="end">
-                      <IconButton
-                        aria-label="toggle password visibility"
-                        type="submit"
-                      >
-                        <Search />
-                      </IconButton>
-                    </InputAdornment>
-                  )
-                }}
-              />
-            </FormControl>
-          </form>
-        </Paper>
-        {
-          lockBoxId && lockBox.createdAt === "0"
-            ? (
-              <Paper
-                className={styles.paper}
-                elevation={2}
+          <div className={styles.hero}>
+            <Typography variant="h4" gutterBottom>{"\u{1F511}"} Ether Lock Box</Typography>
+          </div>
+          {
+            noWeb3 ? (
+              <Grid
+                container
+                direction="column"
+                justify="center"
+                alignItems="center"
               >
-                <NewLockBoxForm
-                  lockBoxId={lockBoxId}
-                  onSave={createLockBox}
-                />
-              </Paper>
-            )
-            : null
-        }
-        {
-          lockBoxId && Number(lockBox.createdAt) > 0
-            ? (
+                <Typography>
+                  Could not load web3.{" "}
+                  <Link href="https://metamask.io/" target="_blank">
+                    Check out metamask.
+                  </Link>
+                </Typography>
+              </Grid>
+            ) : null
+          }
+          { !ready && !noWeb3 ? (
+              <Grid
+                container
+                direction="column"
+                justify="center"
+                alignItems="center"
+              >
+                <CircularProgress />
+              </Grid>
+          ) : null }
+          {
+            ready && !noWeb3 ? (
               <>
                 <Paper
-                  className={clsx(styles.paper, styles.marginBottom)}
                   elevation={2}
                 >
-                  <LockBox
-                    blockNumber={blockNumber}
-                    lockBox={lockBox}
-                    lockBoxId={lockBoxId}
-                    web3={web3}
-                    account={account}
-                    contract={contract}
-                    handleRedeemValue={handleRedeemValue}
-                    handleSpendValue={handleSpendValue}
-                    handleAddValue={handleAddValue}
-                  />
+                  <form
+                    className={styles.searchForm}
+                    noValidate
+                    autoComplete="off"
+                    onSubmit={event => {
+                      event.preventDefault();
+                      setLockBoxId(searchedLockBoxId);
+                    }}
+                  >
+                    <FormControl fullWidth>
+                      <TextField
+                        variant="outlined"
+                        placeholder="Find Lock Box By ID"
+                        value={searchedLockBoxId}
+                        onChange={event => setSearchedLockBoxId(event.target.value)}
+                        InputProps={{
+                          endAdornment: (
+                            <InputAdornment position="end">
+                              <IconButton
+                                aria-label="toggle password visibility"
+                                type="submit"
+                              >
+                                <Search />
+                              </IconButton>
+                            </InputAdornment>
+                          )
+                        }}
+                      />
+                    </FormControl>
+                  </form>
                 </Paper>
                 {
-                  isLocked ? (
-                    <Paper
-                      className={styles.paper}
-                      elevation={2}
-                    >
-                      <UnlockLockBox
-                        blockNumber={blockNumber}
-                        lockBox={lockBox}
-                        lockBoxId={lockBoxId}
-                        web3={web3}
-                        account={account}
-                        contract={contract}
-                        onUnlock={handleUnlockLockBox}
-                      />
-                    </Paper>
+                  lockBoxId && lockBox.createdAt === "0"
+                    ? (
+                      <Paper
+                        className={styles.paper}
+                        elevation={2}
+                      >
+                        <NewLockBoxForm
+                          lockBoxId={lockBoxId}
+                          onSave={createLockBox}
+                        />
+                      </Paper>
+                    )
+                    : null
+                }
+                {
+                  lockBoxId && Number(lockBox.createdAt) > 0 ? (
+                    <>
+                      <Paper
+                        className={clsx(styles.paper, styles.marginBottom)}
+                        elevation={2}
+                      >
+                        <LockBox
+                          blockNumber={blockNumber}
+                          lockBox={lockBox}
+                          lockBoxId={lockBoxId}
+                          web3={web3}
+                          account={account}
+                          contract={contract}
+                          handleRedeemValue={handleRedeemValue}
+                          handleSpendValue={handleSpendValue}
+                          handleAddValue={handleAddValue}
+                        />
+                      </Paper>
+                      {
+                        isLocked ? (
+                          <Paper
+                            className={styles.paper}
+                            elevation={2}
+                          >
+                            <UnlockLockBox
+                              blockNumber={blockNumber}
+                              lockBox={lockBox}
+                              lockBoxId={lockBoxId}
+                              web3={web3}
+                              account={account}
+                              contract={contract}
+                              onUnlock={handleUnlockLockBox}
+                            />
+                          </Paper>
+                        ) : null
+                      }
+                    </>
                   ) : null
                 }
-              </>
-            )
-            : null
-        }
+            </>
+            ) : null
+          }
+        </Grid>
       </Grid>
-    </Grid>
+      <Snackbar
+        anchorOrigin={{
+          vertical: 'top',
+          horizontal: 'right',
+        }}
+        open={snackBarMessage !== null}
+        message={(
+          <>
+            <CircularProgress
+              size={15}
+              thickness={5}
+              className={styles.snackBarProgress}
+            />
+            <Typography variant="body1" component="span">
+              {snackBarMessage}
+            </Typography>
+          </>
+        )}
+        action={
+          <React.Fragment>
+            <IconButton size="small" aria-label="close" color="inherit" onClick={() => setSnackBarMessage(null)}>
+              <CloseIcon fontSize="small" />
+            </IconButton>
+          </React.Fragment>
+        }
+      />
+    </>
   );
 };
 

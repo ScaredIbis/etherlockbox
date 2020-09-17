@@ -202,9 +202,10 @@ const NewLockBoxForm = props => {
         </div>
       ))
       }
-      <FormControl fullWidth>
+      <FormControl>
         <Button
           type="button"
+          variant="outlined"
           color="secondary"
           onClick={addSecurityQuestion}
           startIcon={<Add />}
@@ -227,9 +228,7 @@ const NewLockBoxForm = props => {
           onChange={event => setNumAnswersRequired(event.target.value)}
         />
       </FormControl>
-      <FormControl
-        fullWidth
-      >
+      <FormControl>
         <Button
           type="submit"
           variant="contained"
