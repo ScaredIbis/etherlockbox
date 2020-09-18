@@ -32,7 +32,7 @@ const useStyles = makeStyles((theme) => ({
     paddingRight: theme.spacing(0),
   },
   overflowEllipsis: {
-    whiteSpace: "nowrap",
+    whiteSpace: "pre",
     overflow: "hidden",
     textOverflow: "ellipsis"
   }

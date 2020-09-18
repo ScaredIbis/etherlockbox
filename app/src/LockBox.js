@@ -19,7 +19,7 @@ const useStyles = makeStyles((theme) => ({
     marginRight: theme.spacing(1)
   },
   overflowEllipsis: {
-    whiteSpace: "nowrap",
+    whiteSpace: "pre",
     overflow: "hidden",
     textOverflow: "ellipsis"
   },
