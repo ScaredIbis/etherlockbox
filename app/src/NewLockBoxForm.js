@@ -202,8 +202,7 @@ const NewLockBoxForm = props => {
             />
           </FormControl>
         </div>
-      ))
-      }
+      ))}
       <FormControl>
         <Button
           type="button"

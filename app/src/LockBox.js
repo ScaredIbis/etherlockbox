@@ -115,7 +115,7 @@ const LockBox = props => {
       }));
     } else if (spendingContext === "redeem") {
       setSpendingProps({
-        title: "Redeem Locked Value",
+        title: "\u{1F4B0} Redeem Locked Value",
         onSpend: handleRedeemValue,
         defaultRecipient: lockBox.redeemableBy,
         buttonColor: "secondary",
@@ -123,7 +123,7 @@ const LockBox = props => {
       });
     } else if (spendingContext === "spend") {
       setSpendingProps({
-        title: "Spend Locked Value",
+        title: "\u{1F4B8} Spend Locked Value",
         onSpend: handleSpendValue,
         defaultRecipient: lockBox.owner,
         buttonColor: "primary",
@@ -131,7 +131,7 @@ const LockBox = props => {
       });
     } else if (spendingContext === "addValue") {
       setSpendingProps({
-        title: "Add Value to Lock Box",
+        title: "\u{1F4C8} Add Value to Lock Box",
         onSpend: handleAddValue,
         hideRecipientInput: true,
         buttonColor: "primary",

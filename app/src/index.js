@@ -9,11 +9,28 @@ import * as serviceWorker from "./serviceWorker";
 
 const theme = createMuiTheme({
   palette: {
-    primary: {
+      primary: {
       main: cyan[700],
     },
     secondary: {
       main: '#f4511e',
+    },
+  },
+  overrides: {
+    MuiPaper: {
+      rounded: {
+        borderRadius: 16,
+      },
+    },
+    MuiButton: {
+      root: {
+        borderRadius: 12,
+      },
+    },
+    MuiOutlinedInput: {
+      root: {
+        borderRadius: 16,
+      },
     },
   },
 });

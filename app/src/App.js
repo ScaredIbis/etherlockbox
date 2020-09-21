@@ -9,7 +9,6 @@ import Typography from '@material-ui/core/Typography';
 import InputAdornment from '@material-ui/core/InputAdornment';
 import FormControl from '@material-ui/core/FormControl';
 import Search from '@material-ui/icons/Search';
-import Grid from "@material-ui/core/Grid";
 import CircularProgress from "@material-ui/core/CircularProgress";
 import Snackbar from "@material-ui/core/Snackbar";
 import Link from "@material-ui/core/Link";
@@ -27,20 +26,50 @@ import getWeb3 from "./getWeb3";
 const useStyles = makeStyles((theme) => ({
   root: {
     height: "100%",
+    display: "flex",
+    flexDirection: "column",
+    justifyContent: "center",
+    alignItems: "stretch"
+  },
+  appContainer: {
+    overflow: "auto",
+    flex: 1,
+    display: "flex",
+    flexDirection: "column",
+    justifyContent: "center",
+    alignItems: "center",
+  },
+  formContainer: {
+    overflow: "auto",
+  },
+  innerPaper: {
+    padding: theme.spacing(2),
+  },
+  appContent: {
+    [theme.breakpoints.down('xs')]: {
+      width: "95%"
+    },
+    [theme.breakpoints.up('sm')]: {
+      width: "80%"
+    },
+    [theme.breakpoints.up('md')]: {
+      width: "60%"
+    },
+    [theme.breakpoints.up('lg')]: {
+      width: "50%",
+      maxWidth: "700px",
+    },
   },
   searchForm: {
     marginBottom: theme.spacing(2),
     backgroundColor: "white",
-    borderRadius: theme.spacing(1),
+    borderRadius: 16,
     '& .MuiInputBase-root': {
       fontWeight: "bold"
     },
   },
   marginBottom: {
     marginBottom: theme.spacing(1),
-  },
-  paper: {
-    padding: theme.spacing(2),
   },
   lockBoxId: {
     paddingTop: theme.spacing(2),
@@ -50,9 +79,22 @@ const useStyles = makeStyles((theme) => ({
   hero: {
     textAlign: "center",
     backgroundColor: "transparent",
+    marginBottom: theme.spacing(3)
   },
   snackBarProgress: {
     marginRight: theme.spacing(1)
+  },
+  topBar: {
+    top: 0,
+    padding: theme.spacing(2),
+    display: "flex",
+  },
+  topBarItem: {
+    marginRight: theme.spacing(2)
+  },
+  topBarItemRight: {
+    flex: 1,
+    textAlign: "right"
   }
 }));
 
@@ -258,54 +300,64 @@ const App = () => {
   }, [lockBox, blockNumber]);
 
   return (
-    <>
-      <Grid
-        className={styles.root}
-        container
-        direction="row"
-        justify="center"
-        alignItems="center"
-      >
-        <Grid
-          item
-          xs={12}
-          sm={10}
-          md={6}
-          lg={4}
-        >
-          <div className={styles.hero}>
-            <Typography variant="h4" gutterBottom>{"\u{1F511}"} Ether Lock Box</Typography>
-          </div>
-          {
-            noWeb3 ? (
-              <Grid
-                container
-                direction="column"
-                justify="center"
-                alignItems="center"
-              >
-                <Typography>
-                  Could not load web3.{" "}
-                  <Link href="https://metamask.io/" target="_blank">
-                    Check out metamask.
-                  </Link>
-                </Typography>
-              </Grid>
-            ) : null
-          }
-          { !ready && !noWeb3 ? (
-              <Grid
-                container
-                direction="column"
-                justify="center"
-                alignItems="center"
-              >
-                <CircularProgress />
-              </Grid>
-          ) : null }
-          {
-            ready && !noWeb3 ? (
-              <>
+    <div
+      className={styles.root}
+    >
+      <div className={clsx(styles.topBar)}>
+        <Typography className={styles.topBarItem}>
+          <strong>
+            <Link href="https://etherlockbox.com" target="_blank">
+              About
+            </Link>
+          </strong>
+        </Typography>
+        <Typography className={styles.topBarItem}>
+          <strong>
+            <Link href="https://github.com/ScaredIbis/etherlockbox" target="_blank">
+              Etherscan
+            </Link>
+          </strong>
+        </Typography>
+        <Typography className={styles.topBarItem}>
+          <strong>
+            <Link href="https://github.com/ScaredIbis/etherlockbox" target="_blank">
+              Github
+            </Link>
+          </strong>
+        </Typography>
+        <div className={styles.topBarItemRight}>
+          <Typography className={styles.topBarItem}>
+            <strong>
+              {account}
+            </strong>
+          </Typography>
+        </div>
+      </div>
+      <div className={styles.appContainer}>
+        <div className={styles.hero}>
+          <Typography variant="h4">{"\u{1F511}"} Ether Lock Box</Typography>
+        </div>
+        {
+          noWeb3 ? (
+            <div>
+              <Typography>
+                Could not load web3.{" "}
+                <Link href="https://metamask.io/" target="_blank">
+                  Check out metamask.
+                </Link>
+              </Typography>
+            </div>
+          ) : null
+        }
+        { !ready && !noWeb3 ? (
+            <div>
+              <CircularProgress />
+            </div>
+        ) : null }
+        {
+          ready && !noWeb3 ? (
+            <>
+              <div className={styles.appContent}>
                 <Paper
                   elevation={2}
                 >
@@ -340,28 +392,32 @@ const App = () => {
                     </FormControl>
                   </form>
                 </Paper>
-                {
-                  lockBoxId && lockBox.createdAt === "0"
-                    ? (
-                      <Paper
-                        className={styles.paper}
+              </div>
+              {
+                lockBoxId && lockBox.createdAt === "0"
+                  ? (
+                    <Paper
+                        className={clsx(styles.appContent, styles.formContainer)}
                         elevation={2}
                       >
-                        <NewLockBoxForm
-                          lockBoxId={lockBoxId}
-                          onSave={createLockBox}
-                        />
-                      </Paper>
-                    )
-                    : null
-                }
-                {
-                  lockBoxId && Number(lockBox.createdAt) > 0 ? (
-                    <>
-                      <Paper
-                        className={clsx(styles.paper, styles.marginBottom)}
-                        elevation={2}
-                      >
+                        <div className={styles.innerPaper}>
+                          <NewLockBoxForm
+                            lockBoxId={lockBoxId}
+                            onSave={createLockBox}
+                          />
+                      </div>
+                    </Paper>
+                  )
+                  : null
+              }
+              {
+                lockBoxId && Number(lockBox.createdAt) > 0 ? (
+                  <>
+                    <Paper
+                      className={clsx(styles.paper, styles.marginBottom, styles.appContent)}
+                      elevation={2}
+                    >
+                      <div className={styles.innerPaper}>
                         <LockBox
                           blockNumber={blockNumber}
                           lockBox={lockBox}
@@ -373,13 +429,15 @@ const App = () => {
                           handleSpendValue={handleSpendValue}
                           handleAddValue={handleAddValue}
                         />
-                      </Paper>
-                      {
-                        isLocked ? (
-                          <Paper
-                            className={styles.paper}
-                            elevation={2}
-                          >
+                      </div>
+                    </Paper>
+                    {
+                      isLocked ? (
+                        <Paper
+                          className={styles.paper}
+                          elevation={2}
+                        >
+                          <div className={styles.innerPaper}>
                             <UnlockLockBox
                               blockNumber={blockNumber}
                               lockBox={lockBox}
@@ -389,21 +447,21 @@ const App = () => {
                               contract={contract}
                               onUnlock={handleUnlockLockBox}
                             />
-                          </Paper>
-                        ) : null
-                      }
-                    </>
-                  ) : null
-                }
-            </>
-            ) : null
-          }
-        </Grid>
-      </Grid>
+                          </div>
+                        </Paper>
+                      ) : null
+                    }
+                  </>
+                ) : null
+              }
+          </>
+          ) : null
+        }
+      </div>
       <Snackbar
         anchorOrigin={{
           vertical: 'top',
-          horizontal: 'right',
+          horizontal: 'center',
         }}
         open={snackBarMessage !== null}
         message={(
@@ -426,7 +484,7 @@ const App = () => {
           </React.Fragment>
         }
       />
-    </>
+    </div>
   );
 };
 
