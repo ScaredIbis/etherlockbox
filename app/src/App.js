@@ -23,6 +23,15 @@ import UnlockLockBox from "./UnlockLockBox";
 import EtherLockBoxContract from "./contracts/EtherLockBox.json";
 import getWeb3 from "./getWeb3";
 
+const getEtherscanUrlBase = network => {
+  switch(network) {
+    case 3:
+      return `https://ropsten.etherscan.io`
+    default:
+      return "https://etherscan.io"
+  }
+}
+
 const useStyles = makeStyles((theme) => ({
   root: {
     height: "100%",
@@ -90,11 +99,15 @@ const useStyles = makeStyles((theme) => ({
     display: "flex",
   },
   topBarItem: {
-    marginRight: theme.spacing(2)
+    marginRight: theme.spacing(2),
+    fontWeight: "bold"
   },
   topBarItemRight: {
     flex: 1,
-    textAlign: "right"
+    textAlign: "right",
+    "& .MuiTypography-root": {
+      fontWeight: "bold"
+    }
   }
 }));
 
@@ -105,7 +118,8 @@ const App = () => {
   const [web3, setWeb3] = useState({});
   const [noWeb3, setNoWeb3] = useState(false);
   const [blockNumber, setBlockNumber] = useState(null);
-  const [account, setAccount] = useState([]);
+  const [etherscanUrlBase, setEtherscanUrlBase] = useState("");
+  const [account, setAccount] = useState("");
   const [contract, setContract] = useState({});
   const [lockBoxId, setLockBoxId] = useState("");
   const [searchedLockBoxId, setSearchedLockBoxId] = useState("");
@@ -117,11 +131,9 @@ const App = () => {
       // Get network provider and web3 instance.
       const _web3 = await getWeb3();
 
-      // Use web3 to get the user's accounts.
-      const accounts = await _web3.eth.getAccounts();
-
       // Get the contract instance.
       const networkId = await _web3.eth.net.getId();
+      setEtherscanUrlBase(getEtherscanUrlBase(networkId));
       const deployedNetwork = EtherLockBoxContract.networks[networkId];
       const _contract = new _web3.eth.Contract(
         EtherLockBoxContract.abi,
@@ -133,12 +145,16 @@ const App = () => {
 
       _web3.currentProvider.publicConfigStore.on("update", async () => {
         setAccount(_web3.currentProvider.selectedAddress);
-        const _blockNumber = await _web3.eth.getBlockNumber();
+        const [_blockNumber, networkId] = await Promise.all([
+          _web3.eth.getBlockNumber(),
+          _web3.eth.net.getId()
+        ]);
+        setEtherscanUrlBase(getEtherscanUrlBase(networkId));
         setBlockNumber(_blockNumber);
       });
 
       setWeb3(_web3);
-      setAccount(accounts[0]);
+      setAccount(_web3.currentProvider.selectedAddress);
       setContract(_contract);
       setReady(true);
 
@@ -299,37 +315,36 @@ const App = () => {
     return (!blockNumber || unlockedAt === 0 || unlockedAt > blockNumber)
   }, [lockBox, blockNumber]);
 
+  const slicedAccount = useMemo(() => {
+    if(!account) {
+      return null;
+    }
+    return `0x${account.slice(2, 6).toUpperCase()}...${account.slice(-4).toUpperCase()}`
+  }, [account]);
+
   return (
     <div
       className={styles.root}
     >
       <div className={clsx(styles.topBar)}>
         <Typography className={styles.topBarItem}>
-          <strong>
-            <Link href="https://etherlockbox.com" target="_blank">
-              About
-            </Link>
-          </strong>
+          <Link href="https://etherlockbox.com" target="_blank">
+            About
+          </Link>
         </Typography>
         <Typography className={styles.topBarItem}>
-          <strong>
-            <Link href="https://github.com/ScaredIbis/etherlockbox" target="_blank">
-              Etherscan
-            </Link>
-          </strong>
+          <Link href={contract._address ? `${etherscanUrlBase}/address/${contract._address}` : null} target="_blank">
+            Etherscan
+          </Link>
         </Typography>
         <Typography className={styles.topBarItem}>
-          <strong>
-            <Link href="https://github.com/ScaredIbis/etherlockbox" target="_blank">
-              Github
-            </Link>
-          </strong>
+          <Link href="https://github.com/ScaredIbis/etherlockbox" target="_blank">
+            Github
+          </Link>
         </Typography>
         <div className={styles.topBarItemRight}>
-          <Typography className={styles.topBarItem}>
-            <strong>
-              {account}
-            </strong>
+          <Typography>
+            {slicedAccount}
           </Typography>
         </div>
       </div>
@@ -340,7 +355,7 @@ const App = () => {
         {
           noWeb3 ? (
             <div>
-              <Typography>
+              <Typography variant="h6">
                 Could not load web3.{" "}
                 <Link href="https://metamask.io/" target="_blank">
                   Check out metamask.
@@ -434,7 +449,7 @@ const App = () => {
                     {
                       isLocked ? (
                         <Paper
-                          className={styles.paper}
+                          className={clsx(styles.paper, styles.appContent)}
                           elevation={2}
                         >
                           <div className={styles.innerPaper}>

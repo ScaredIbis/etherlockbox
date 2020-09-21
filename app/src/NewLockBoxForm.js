@@ -145,7 +145,7 @@ const NewLockBoxForm = props => {
           className={styles.noMarginBottom}
           control={(
             <Checkbox
-              color="secondary"
+              color="primary"
               checked={spendableOnceUnlocked}
               onChange={event => setSpendableOnceUnlocked(event.target.checked)}
               name="spendableOnceUnlocked"
