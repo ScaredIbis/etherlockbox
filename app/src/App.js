@@ -393,6 +393,7 @@ const App = () => {
         <div className={styles.topBarItemsRight}>
           <Button
             color="secondary"
+            disabled={ownedLockBoxIds.length === 0}
             onClick={() => setShowOwnedLockBoxIds(true)}
           >
             My Lockboxes
