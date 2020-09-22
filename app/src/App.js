@@ -100,6 +100,7 @@ const useStyles = makeStyles((theme) => ({
     top: 0,
     padding: theme.spacing(1),
     display: "flex",
+    flexWrap: "wrap",
     justifyContent: "space-between"
   },
   topBarItemsLeft: {

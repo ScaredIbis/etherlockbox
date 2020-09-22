@@ -37,7 +37,7 @@ const OwnedLockBoxIds = props => {
       aria-labelledby="my-lockbox-ids-dialog-title"
       className={styles.root}
     >
-      <DialogTitle id="my-lockbox-ids-dialog-title">Your Lock Boxes</DialogTitle>
+      <DialogTitle id="my-lockbox-ids-dialog-title">{"\u{1F3E6}"} Your Lock Boxes</DialogTitle>
       <DialogContent>
         {lockBoxIds.map(lockBoxId => (
           <Button
