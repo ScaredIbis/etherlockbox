@@ -187,13 +187,15 @@ const App = () => {
       from: account,
     });
 
+    const newValues = [];
     for(let index = 0; index < numOwnedLockBoxes; index++) {
       const ownedLockBoxId = await contract.methods.getOwnedLockBoxId(index).call({
         from: account,
       });
 
-      setOwnedLockBoxIds(previous => [...previous, web3.utils.hexToUtf8(ownedLockBoxId)]);
+      newValues.push(web3.utils.hexToUtf8(ownedLockBoxId));
     }
+    setOwnedLockBoxIds(newValues);
   }, [contract, web3, account]);
 
   useEffect(() => {
@@ -252,10 +254,11 @@ const App = () => {
         });
       setSnackBarMessage(null);
       getLockBox();
+      getOwnedLockBoxes();
     } catch (error) {
       setSnackBarMessage(null);
     }
-  }, [account, web3.utils, contract.methods, lockBoxId, getLockBox]);
+  }, [account, web3.utils, contract.methods, lockBoxId, getLockBox, getOwnedLockBoxes]);
 
   const handleUnlockLockBox = useCallback(async (answers) => {
     setSnackBarMessage("Unlocking Lock Box")
