@@ -361,6 +361,30 @@ contract("EtherLockBox", accounts => {
     assert.equal(lockBox.value, 500, "redeemed value was not deducted from lockBox")
     assert.equal(new BN(balanceAfter).sub(new BN(balanceBefore)), 500, "recipient did not receive payment");
   });
+
+  it("increments the ownedLockBox count of the sender when a lockBox is created", async () => {
+    const etherLockBoxInstance = await EtherLockBox.new();
+
+    const lockBoxCountBefore = await etherLockBoxInstance.getOwnedLockBoxesCount({ from: accounts[0] });
+
+    assert.equal(lockBoxCountBefore, 0, "lockBox count was not initialised as 0");
+
+    await etherLockBoxInstance.createLockBox(...defaultLockBoxArgs)
+
+    const lockBoxCountAfter = await etherLockBoxInstance.getOwnedLockBoxesCount({ from: accounts[0] });
+
+    assert.equal(lockBoxCountAfter, 1, "lockBox count was not incremented when new lockBox was created");
+  });
+
+  it("can fetch the id of an owned lockBoxId given its index in the ownedLockBoxes mapping", async () => {
+    const etherLockBoxInstance = await EtherLockBox.new();
+
+    await etherLockBoxInstance.createLockBox(...defaultLockBoxArgs)
+
+    const lockBoxId = await etherLockBoxInstance.getOwnedLockBoxId(0, { from: accounts[0] });
+
+    assert.equal(lockBoxId, defaultLockBoxArgs[0], "lockBox Id was not stored in the correct index");
+  });
 });
 
 const advanceBlock = () => {

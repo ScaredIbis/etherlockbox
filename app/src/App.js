@@ -6,6 +6,7 @@ import IconButton from '@material-ui/core/IconButton';
 import TextField from '@material-ui/core/TextField';
 import Paper from '@material-ui/core/Paper';
 import Typography from '@material-ui/core/Typography';
+import Button from '@material-ui/core/Button';
 import InputAdornment from '@material-ui/core/InputAdornment';
 import FormControl from '@material-ui/core/FormControl';
 import Search from '@material-ui/icons/Search';
@@ -13,10 +14,12 @@ import CircularProgress from "@material-ui/core/CircularProgress";
 import Snackbar from "@material-ui/core/Snackbar";
 import Link from "@material-ui/core/Link";
 import CloseIcon from '@material-ui/icons/Close';
+import OpenInNewIcon from '@material-ui/icons/OpenInNew';
 
 import "./App.css";
 import "fontsource-roboto";
 
+import OwnedLockBoxIds from "./OwnedLockBoxIds";
 import NewLockBoxForm from "./NewLockBoxForm";
 import LockBox from "./LockBox";
 import UnlockLockBox from "./UnlockLockBox";
@@ -95,18 +98,23 @@ const useStyles = makeStyles((theme) => ({
   },
   topBar: {
     top: 0,
-    padding: theme.spacing(2),
+    padding: theme.spacing(1),
     display: "flex",
+    justifyContent: "space-between"
   },
-  topBarItem: {
-    marginRight: theme.spacing(2),
-    fontWeight: "bold"
+  topBarItemsLeft: {
+    "& a": {
+      fontWeight: "bold",
+    },
+    "& .MuiButton-endIcon": {
+      marginLeft: theme.spacing(0.5),
+    },
+    display: "flex"
   },
-  topBarItemRight: {
-    flex: 1,
-    textAlign: "right",
-    "& .MuiTypography-root": {
-      fontWeight: "bold"
+  topBarItemsRight: {
+    display: "flex",
+    "& span": {
+      fontWeight: "bold",
     }
   }
 }));
@@ -122,6 +130,8 @@ const App = () => {
   const [account, setAccount] = useState("");
   const [contract, setContract] = useState({});
   const [lockBoxId, setLockBoxId] = useState("");
+  const [ownedLockBoxIds, setOwnedLockBoxIds] = useState([]);
+  const [showOwnedLockBoxIds, setShowOwnedLockBoxIds] = useState(false);
   const [searchedLockBoxId, setSearchedLockBoxId] = useState("");
   const [lockBox, setLockBox] = useState({});
   const [snackBarMessage, setSnackBarMessage] = useState(null);
@@ -170,6 +180,26 @@ const App = () => {
       console.error(error);
     }
   }
+
+  const getOwnedLockBoxes = useCallback(async () => {
+    const numOwnedLockBoxes = await contract.methods.getOwnedLockBoxesCount().call({
+      from: account,
+    });
+
+    for(let index = 0; index < numOwnedLockBoxes; index++) {
+      const ownedLockBoxId = await contract.methods.getOwnedLockBoxId(index).call({
+        from: account,
+      });
+
+      setOwnedLockBoxIds(previous => [...previous, web3.utils.hexToUtf8(ownedLockBoxId)]);
+    }
+  }, [contract, web3, account]);
+
+  useEffect(() => {
+    if(ready) {
+      getOwnedLockBoxes();
+    }
+  }, [ready, getOwnedLockBoxes])
 
   const getLockBox = useCallback(async () => {
     if(lockBoxId) {
@@ -296,6 +326,12 @@ const App = () => {
     }
   }, [account, web3.utils, contract.methods, lockBoxId, getLockBox])
 
+  const handleOwnedLockBoxIdSelected = (selectedLockBoxId) => {
+    setSearchedLockBoxId(selectedLockBoxId);
+    setLockBoxId(selectedLockBoxId);
+    setShowOwnedLockBoxIds(false);
+  }
+
   useEffect(() => { initWeb3() }, [web3.eth]);
 
   useEffect(() => {
@@ -327,25 +363,47 @@ const App = () => {
       className={styles.root}
     >
       <div className={clsx(styles.topBar)}>
-        <Typography className={styles.topBarItem}>
-          <Link href="https://etherlockbox.com" target="_blank">
+        <div className={styles.topBarItemsLeft}>
+          <Button
+            href="https://etherlockbox.com"
+            target="_blank"
+            color="primary"
+            endIcon={<OpenInNewIcon/>}
+          >
             About
-          </Link>
-        </Typography>
-        <Typography className={styles.topBarItem}>
-          <Link href={contract._address ? `${etherscanUrlBase}/address/${contract._address}` : null} target="_blank">
+          </Button>
+          <Button
+            href={contract._address ? `${etherscanUrlBase}/address/${contract._address}` : etherscanUrlBase}
+            target="_blank"
+            color="primary"
+            endIcon={<OpenInNewIcon/>}
+          >
             Etherscan
-          </Link>
-        </Typography>
-        <Typography className={styles.topBarItem}>
-          <Link href="https://github.com/ScaredIbis/etherlockbox" target="_blank">
+          </Button>
+          <Button
+            href="https://github.com/ScaredIbis/etherlockbox"
+            target="_blank"
+            color="primary"
+            endIcon={<OpenInNewIcon/>}
+          >
             Github
-          </Link>
-        </Typography>
-        <div className={styles.topBarItemRight}>
-          <Typography>
-            {slicedAccount}
-          </Typography>
+          </Button>
+        </div>
+        <div className={styles.topBarItemsRight}>
+          <Button
+            color="secondary"
+            onClick={() => setShowOwnedLockBoxIds(true)}
+          >
+            My Lockboxes
+          </Button>
+          <Button
+            href={account ? `${etherscanUrlBase}/address/${account}` : etherscanUrlBase}
+            target="_blank"
+            color="primary"
+            endIcon={<OpenInNewIcon/>}
+          >
+            {slicedAccount || "..."}
+          </Button>
         </div>
       </div>
       <div className={styles.appContainer}>
@@ -473,6 +531,38 @@ const App = () => {
           ) : null
         }
       </div>
+      <Snackbar
+        anchorOrigin={{
+          vertical: 'top',
+          horizontal: 'center',
+        }}
+        open={snackBarMessage !== null}
+        message={(
+          <>
+            <CircularProgress
+              size={15}
+              thickness={5}
+              className={styles.snackBarProgress}
+            />
+            <Typography variant="body1" component="span">
+              {snackBarMessage}
+            </Typography>
+          </>
+        )}
+        action={
+          <React.Fragment>
+            <IconButton size="small" aria-label="close" color="inherit" onClick={() => setSnackBarMessage(null)}>
+              <CloseIcon fontSize="small" />
+            </IconButton>
+          </React.Fragment>
+        }
+      />
+      <OwnedLockBoxIds
+        lockBoxIds={ownedLockBoxIds}
+        open={showOwnedLockBoxIds}
+        onClose={() => setShowOwnedLockBoxIds(false)}
+        handleLockBoxIdSelected={handleOwnedLockBoxIdSelected}
+      />
       <Snackbar
         anchorOrigin={{
           vertical: 'top',

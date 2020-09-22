@@ -30,6 +30,11 @@ contract EtherLockBox {
 
   mapping (bytes => LockBox) lockBoxes;
 
+  /// number of lockboxes owned by a given address
+  mapping (address => uint) lockBoxCounts;
+  /// mapping of lockBox count to lockBox id for a given address
+  mapping (address => mapping(uint => bytes)) ownedLockBoxIds;
+
   /// Create a new lockBox
   /// @param lockBoxId id of the lockBox
   /// @param hints serialised lockBox hints
@@ -59,6 +64,9 @@ contract EtherLockBox {
     lockBox.numAnswersRequired = numAnswersRequired;
     lockBox.unlockingPeriod = unlockingPeriod;
     lockBox.spendableOnceUnlocked = spendableOnceUnlocked;
+    uint currentOwnedLockBoxCount = lockBoxCounts[msg.sender];
+    ownedLockBoxIds[msg.sender][currentOwnedLockBoxCount] = lockBoxId;
+    lockBoxCounts[msg.sender] = currentOwnedLockBoxCount.add(1);
     emit Created(lockBoxId);
   }
 
@@ -90,6 +98,18 @@ contract EtherLockBox {
       lockBox.numAnswersRequired,
       lockBox.spendableOnceUnlocked
     );
+  }
+
+  /// Get the number of lockboxes owned by msg.sender
+  /// @dev returns the number of lockBoxes where the sender is the owner
+  function getOwnedLockBoxesCount() public view returns (uint) {
+    return lockBoxCounts[msg.sender];
+  }
+
+  /// Get an owned lockBox Id by index in ownedLockBoxes mapping
+  /// @dev returns the id of a lockBox given its index in the ownedLockBoxes mapping
+  function getOwnedLockBoxId(uint index) public view returns (bytes memory) {
+    return ownedLockBoxIds[msg.sender][index];
   }
 
   /// Add value to an existing lockBox

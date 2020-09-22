@@ -255,8 +255,7 @@ const LockBox = props => {
         lockBox={lockBox}
         web3={web3}
         {...spendingProps}
-      >
-      </SpendValue>
+      />
     </>
   );
 };
