@@ -154,18 +154,19 @@ const App = () => {
       const _blockNumber = await _web3.eth.getBlockNumber();
       setBlockNumber(_blockNumber);
 
-      _web3.currentProvider.publicConfigStore.on("update", async () => {
-        setAccount(_web3.currentProvider.selectedAddress);
-        const [_blockNumber, networkId] = await Promise.all([
-          _web3.eth.getBlockNumber(),
-          _web3.eth.net.getId()
-        ]);
-        setEtherscanUrlBase(getEtherscanUrlBase(networkId));
+      setInterval(async() => {
+
+        const _blockNumber = await _web3.eth.getBlockNumber();
+
         setBlockNumber(_blockNumber);
-      });
+      }, 1000)
+
+      window.ethereum.on('chainChanged', () => window.location.reload());
+
+      window.ethereum.on('accountsChanged', (accounts) => setAccount(accounts[0]));
 
       setWeb3(_web3);
-      setAccount(_web3.currentProvider.selectedAddress);
+      setAccount(window.ethereum.selectedAddress);
       setContract(_contract);
       setReady(true);
 
@@ -368,14 +369,14 @@ const App = () => {
     >
       <div className={clsx(styles.topBar)}>
         <div className={styles.topBarItemsLeft}>
-          <Button
+          {/* <Button
             href="https://etherlockbox.com"
             target="_blank"
             color="primary"
             endIcon={<OpenInNewIcon/>}
           >
             About
-          </Button>
+          </Button> */}
           <Button
             href={contract._address ? `${etherscanUrlBase}/address/${contract._address}` : etherscanUrlBase}
             target="_blank"
