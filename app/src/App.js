@@ -126,6 +126,7 @@ const App = () => {
   const [ready, setReady] = useState(false);
   const [web3, setWeb3] = useState({});
   const [noWeb3, setNoWeb3] = useState(false);
+  const [deployedNetwork, setDeployedNetwork] = useState(null);
   const [blockNumber, setBlockNumber] = useState(null);
   const [etherscanUrlBase, setEtherscanUrlBase] = useState("");
   const [account, setAccount] = useState("");
@@ -139,18 +140,27 @@ const App = () => {
 
   async function initWeb3 () {
     try {
+      window.ethereum.on('chainChanged', (connectionInfo) => {
+        window.location.reload();
+      })
+
       // Get network provider and web3 instance.
       const _web3 = await getWeb3();
+      setWeb3(_web3);
 
       // Get the contract instance.
       const networkId = await _web3.eth.net.getId();
       setEtherscanUrlBase(getEtherscanUrlBase(networkId));
-      const deployedNetwork = EtherLockBoxContract.networks[networkId];
+      const _deployedNetwork = EtherLockBoxContract.networks[networkId];
       const _contract = new _web3.eth.Contract(
         EtherLockBoxContract.abi,
-        deployedNetwork && deployedNetwork.address
-      );
+        _deployedNetwork && _deployedNetwork.address
+        );
 
+        setDeployedNetwork(_deployedNetwork)
+        if(!_deployedNetwork) {
+          return
+        }
       const _blockNumber = await _web3.eth.getBlockNumber();
       setBlockNumber(_blockNumber);
 
@@ -161,18 +171,19 @@ const App = () => {
         setBlockNumber(_blockNumber);
       }, 1000)
 
-      window.ethereum.on('chainChanged', () => window.location.reload());
+
+      window.ethereum.on('connect', (connectionInfo) => {
+        console.log('connected', connectionInfo)
+      })
 
       window.ethereum.on('accountsChanged', (accounts) => setAccount(accounts[0]));
-
-      setWeb3(_web3);
       setAccount(window.ethereum.selectedAddress);
       setContract(_contract);
       setReady(true);
 
       const urlParams = new URLSearchParams(window.location.search);
       const lockBoxId = urlParams.get("lockBoxId");
-      if (lockBoxId) {
+      if (lockBoxId && ready) {
         setSearchedLockBoxId(lockBoxId);
         setLockBoxId(lockBoxId);
       }
@@ -200,10 +211,10 @@ const App = () => {
   }, [contract, web3, account]);
 
   useEffect(() => {
-    if(ready) {
+    if(ready && deployedNetwork) {
       getOwnedLockBoxes();
     }
-  }, [ready, getOwnedLockBoxes])
+  }, [ready, deployedNetwork, getOwnedLockBoxes])
 
   const getLockBox = useCallback(async () => {
     if(lockBoxId) {
@@ -428,13 +439,18 @@ const App = () => {
             </div>
           ) : null
         }
-        { !ready && !noWeb3 ? (
+        { !ready && !noWeb3 && deployedNetwork === null ? (
             <div>
               <CircularProgress />
             </div>
         ) : null }
+        { !ready && !noWeb3 && deployedNetwork === undefined ? (
+            <div>
+              Please use ropsten network
+            </div>
+        ) : null }
         {
-          ready && !noWeb3 ? (
+          ready && deployedNetwork && !noWeb3 ? (
             <>
               <div className={styles.appContent}>
                 <Paper
