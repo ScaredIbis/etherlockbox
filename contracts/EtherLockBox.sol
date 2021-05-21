@@ -145,6 +145,7 @@ contract EtherLockBox {
   function unlockLockBox(bytes memory lockBoxId, bytes memory answers) public {
     LockBox storage lockBox = lockBoxes[lockBoxId];
     require(lockBoxes[lockBoxId].createdAt > 0, "lockBox does not exist");
+    require(lockBoxes[lockBoxId].unlockedAt == 0, "lockBox is already unlocked");
     // first byte specifies how many answers there are
     uint numAnswersCorrect = 0;
     uint8 numTotalAnswers = bytesToUint8(lockBox.answers);

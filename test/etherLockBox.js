@@ -210,6 +210,30 @@ contract("EtherLockBox", accounts => {
     );
   });
 
+  it("prevents unlocking a lockBox which is already unlocked", async () => {
+    const etherLockBoxInstance = await EtherLockBox.new();
+
+    await etherLockBoxInstance.createLockBox(...defaultLockBoxArgs)
+
+    // unlock it as account 0
+    await etherLockBoxInstance.unlockLockBox(
+      defaultLockBoxArgs[0],
+      "0x9c22ff5f21f0b81b113e63f7db6da94fedef11b2119b4088b89664fb9a3cb658",
+      { from: accounts[0] }
+    );
+
+    await advanceBlock();
+
+    await truffleAssert.reverts(
+      etherLockBoxInstance.unlockLockBox(
+        defaultLockBoxArgs[0],
+        "0x9c22ff5f21f0b81b113e63f7db6da94fedef11b2119b4088b89664fb9a3cb658",
+        { from: accounts[1] }
+      ),
+      "lockBox is already unlocked"
+    );
+  });
+
   it("does not unlock a lockBox if not enough correct answers are provided", async () => {
     const etherLockBoxInstance = await EtherLockBox.new();
 
